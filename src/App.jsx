@@ -2,25 +2,28 @@ import { useEffect, useState } from 'react'
 import { createTask, deleteTask, listTasks, updateTask } from './api/tasksApi'
 import TaskForm from './components/TaskForm';
 
-const[query, setQuery] = useState('');
-const[prio, setPrio] = useState('ALL');
-
-const visibleTasks = tasks.filter(t => {
-  const byText = t.title.toLowerCase().includes(query.toLowerCase());
-  const byPrio = prio === 'ALL' ? true : t.prio = prio; 
-  return byText && byPrio;
-});
-
 export default function App(){
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const[query, setQuery] = useState('');
+  const[prio, setPrio] = useState('ALL');
+
+
+  const visibleTasks = Array.isArray(tasks)
+  ? tasks.filter(t => {
+      const byText = (t.title ?? '').toLowerCase().includes(query.toLowerCase());
+      const byPrio = prio === 'ALL' ? true : t.prio === prio;
+      return byText && byPrio;
+    })
+  : [];
+
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-      const data = listTasks();
+      const data = await listTasks();
       if(!cancelled) setTasks(data);
     } catch (err) {
       if(!cancelled) setError(err.message);
@@ -56,7 +59,7 @@ async function handleToggleDone(id, nextDone) {
     const current = tasks.find(t => t.id == id)
     await updateTask(id, {...current, done: nextDone});
   }catch(err){
-    setTasks(prev);
+    setTasks(prev => [saved, ...prev]);
   }
 }
 
