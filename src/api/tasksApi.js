@@ -11,20 +11,33 @@ export async function listTasks() {
 }
 
 export async function createTask(data){
+    // always stringify whatever we receive so the backend can validate the payload
     const res = await fetch(BASE_URL, {
         method: 'POST',
         headers: {'Content-type':'application/json'},
         body: JSON.stringify(data),
-
     });
+
     if(!res.ok) {
-        throw new Error("Não foi possível criar a task");
+        // copy response body into the error message if available (useful for debugging)
+        let errText;
+        try {
+            errText = await res.text();
+        } catch {}
+        throw new Error(
+            `Não foi possível criar a task${errText ? `: ${errText}` : ''}`
+        );
     }
-    return res.json();
+
+    // some backends return no content (204) or an empty body on create; parsing
+    // JSON from an empty response throws the "Unexpected end of JSON input" error
+    // the caller can decide what to do when `null` is returned.
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
 }
 
 export async function updateTask(id, data) {
- 
+
     const res = await fetch(`${BASE_URL}/${id}`, {
         method: 'PUT',
         headers: {'Content-type': 'application/json'},
@@ -33,7 +46,8 @@ export async function updateTask(id, data) {
     if(!res.ok) {
         throw new Error("Não foi possível atualizar a task!");
     }
-    return res.json();
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
 }
 
 export async function deleteTask(id){
